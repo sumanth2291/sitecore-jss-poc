@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import Loadable from 'react-loadable';
 import { BrowserRouter } from 'react-router-dom';
 import AppRoot from './AppRoot';
 import { setServerSideRenderingState } from './RouteHandler';
@@ -54,16 +55,18 @@ const graphQLClient = GraphQLClientFactory(config.graphQLEndpoint, false, initia
 */
 // initialize the dictionary, then render the app
 // note: if not making a multlingual app, the dictionary init can be removed.
-i18ninit().then(() => {
-  // HTML element to place the app into
-  const rootElement = document.getElementById('root');
+i18ninit()
+  .then(() => Loadable.preloadReady())
+  .then(() => {
+    // HTML element to place the app into
+    const rootElement = document.getElementById('root');
 
-  renderFunction(
-    <AppRoot
-      path={window.location.pathname}
-      Router={BrowserRouter}
-      graphQLClient={graphQLClient}
-    />,
-    rootElement
-  );
-});
+    renderFunction(
+      <AppRoot
+        path={window.location.pathname}
+        Router={BrowserRouter}
+        graphQLClient={graphQLClient}
+      />,
+      rootElement
+    );
+  });

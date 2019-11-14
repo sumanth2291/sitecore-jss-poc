@@ -1,6 +1,9 @@
 const path = require('path');
 const env = require('@babel/preset-env');
 const reactApp = require('babel-preset-react-app');
+const dynamicImport = require('babel-plugin-syntax-dynamic-import');
+const dynamicImportNode = require('babel-plugin-dynamic-import-node');
+const loadableBabel = require('react-loadable/babel');
 // Webpack build configuration to build the SSR bundle.
 // Invoked by build:server.
 
@@ -26,6 +29,7 @@ module.exports = {
           options: {
             babelrc: false,
             presets: [env, reactApp],
+            plugins: [dynamicImport, dynamicImportNode, loadableBabel],
           },
         },
       },

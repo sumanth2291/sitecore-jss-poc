@@ -9,6 +9,8 @@ import i18ninit from '../src/i18n';
 import AppRoot, { routePatterns } from '../src/AppRoot';
 import { setServerSideRenderingState } from '../src/RouteHandler';
 import indexTemplate from '../build/index.html';
+import Loadable from 'react-loadable';
+import manifest from '../build/asset-manifest.json';
 
 /** Asserts that a string replace actually replaced something */
 function assertReplace(string, value, replacement) {
@@ -25,6 +27,13 @@ function assertReplace(string, value, replacement) {
   }
 
   return result;
+}
+
+function convertLoadableModulesToScripts(usedModules) {
+  return Object.keys(manifest)
+    .filter((chunkName) => usedModules.indexOf(chunkName.replace('.js', '')) > -1)
+    .map((k) => `<script src="${manifest[k]}"></script>`)
+    .join('');
 }
 
 /** Export the API key. This will be used by default in Headless mode, removing the need to manually configure the API key on the proxy. */
@@ -54,18 +63,22 @@ export function renderView(callback, path, data, viewBag) {
       Not using GraphQL? Remove this, and the ApolloContext from `AppRoot`.
     */
     const graphQLClient = GraphQLClientFactory(config.graphQLEndpoint, true);
+    const loadableModules = [];
 
     /*
       App Rendering
     */
     initializei18n(state)
+      .then(() => Loadable.preloadAll())
       .then(() =>
         // renderToStringWithData() allows any GraphQL queries to complete their async call
         // before the SSR result is returned, so that the resulting HTML from GQL query results
         // is included in the SSR'ed markup instead of whatever the 'loading' state is.
         // Not using GraphQL? Use ReactDOMServer.renderToString() instead.
         renderToStringWithData(
-          <AppRoot path={path} Router={StaticRouter} graphQLClient={graphQLClient} />
+          <Loadable.Capture report={(module) => loadableModules.push(module)}>
+            <AppRoot path={path} Router={StaticRouter} graphQLClient={graphQLClient} />
+          </Loadable.Capture>
         )
       )
       .then((renderedAppHtml) => {
@@ -108,6 +121,12 @@ export function renderView(callback, path, data, viewBag) {
           html,
           '<head>',
           `<head>${helmet.title.toString()}${helmet.meta.toString()}${helmet.link.toString()}`
+        );
+
+        html = assertReplace(
+          html,
+          '<script>',
+          `${convertLoadableModulesToScripts(loadableModules)}<script>`
         );
 
         callback(null, { html });

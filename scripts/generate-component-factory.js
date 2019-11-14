@@ -50,6 +50,14 @@ function writeComponentFactory() {
   fs.writeFileSync(componentFactoryPath, componentFactory, { encoding: 'utf8' });
 }
 
+function LoadableComponent(importVarName, componentFolder) {
+  return `const ${importVarName} = Loadable({
+  loader: () => import(/* webpackChunkName: "${componentFolder}" */ '../components/${componentFolder}'),
+  loading: () => <div>Loading...</div>,
+  modules: ['${componentFolder}'],
+  });`;
+}
+
 function generateComponentFactory() {
   // by convention, we expect to find React components
   // * under /src/components/ComponentName
@@ -59,6 +67,8 @@ function generateComponentFactory() {
   // and it can be maintained manually if preferred.
 
   const imports = [];
+  imports.push(`import React from 'react';`);
+  imports.push(`import Loadable from 'react-loadable';`);
   const registrations = [];
 
   fs.readdirSync(componentRootPath).forEach((componentFolder) => {
@@ -71,7 +81,7 @@ function generateComponentFactory() {
       const importVarName = componentFolder.replace(/[^\w]+/g, '');
 
       console.debug(`Registering JSS component ${componentFolder}`);
-      imports.push(`import ${importVarName} from '../components/${componentFolder}';`);
+      imports.push(LoadableComponent(importVarName, componentFolder));
       registrations.push(`components.set('${componentFolder}', ${importVarName});`);
     }
   });
